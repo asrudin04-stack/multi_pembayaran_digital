@@ -13,6 +13,7 @@ export interface Pelanggan {
   idTarif?: string; // ID of selected tariff package
   idTanggal?: string; // ID of selected due date schedule
   nominalTarif?: number; // Custom monthly tariff amount for the customer
+  wilayahDesa?: string; // The specific village/region (added for clean grouping and petugas mapping)
 }
 
 export interface TanggalPembayaran {
@@ -52,7 +53,8 @@ export const INITIAL_PELANGGAN: Pelanggan[] = [
     alamat: "Jl. Merdeka No. 45, Jakarta",
     layanan: "PLN",
     noMeter: "532298110902",
-    nominalTarif: 185000
+    nominalTarif: 185000,
+    wilayahDesa: "Jakarta"
   },
   {
     id: "PLG-2026-0002",
@@ -61,7 +63,8 @@ export const INITIAL_PELANGGAN: Pelanggan[] = [
     alamat: "Perum Asri Indah Blok C-12, Bogor",
     layanan: "PDAM",
     noMeter: "PAM-99812-B",
-    nominalTarif: 74500
+    nominalTarif: 74500,
+    wilayahDesa: "Bogor"
   },
   {
     id: "PLG-2026-0003",
@@ -70,7 +73,8 @@ export const INITIAL_PELANGGAN: Pelanggan[] = [
     alamat: "Jl. Melati IV No. 12, Bekasi",
     layanan: "WIFI",
     noMeter: "WIFI-IND-4091",
-    nominalTarif: 275000
+    nominalTarif: 275000,
+    wilayahDesa: "Bekasi"
   },
   {
     id: "PLG-2026-0004",
@@ -79,7 +83,8 @@ export const INITIAL_PELANGGAN: Pelanggan[] = [
     alamat: "Kp. Baru RT 04/RW 02, Tangerang",
     layanan: "PLN",
     noMeter: "532298551042",
-    nominalTarif: 95000
+    nominalTarif: 95000,
+    wilayahDesa: "Tangerang"
   },
   {
     id: "PLG-2026-0005",
@@ -88,7 +93,8 @@ export const INITIAL_PELANGGAN: Pelanggan[] = [
     alamat: "Jl. Veteran No. 8, Depok",
     layanan: "WIFI",
     noMeter: "WIFI-IND-8025",
-    nominalTarif: 275000
+    nominalTarif: 275000,
+    wilayahDesa: "Depok"
   }
 ];
 

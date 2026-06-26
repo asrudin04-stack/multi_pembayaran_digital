@@ -213,7 +213,7 @@ export default function TransaksiView({
           const tgl = String(item.tanggalBayar || item.tanggal_bayar || item.tanggal || new Date().toISOString().split("T")[0]).trim();
           const ket = String(item.keterangan || "").trim();
 
-          const matchesDesa = userRole !== "kasir" || !kasirDesa || !customer || (customer.alamat && customer.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+          const matchesDesa = userRole !== "kasir" || !kasirDesa || !customer || (customer.wilayahDesa ? customer.wilayahDesa.toLowerCase() === kasirDesa.toLowerCase() : !!(customer.alamat && customer.alamat.toLowerCase().includes(kasirDesa.toLowerCase())));
           
           return {
             idPelanggan: idPel,
@@ -311,7 +311,7 @@ export default function TransaksiView({
           const tgl = cleanedCols[tglIdx] || new Date().toISOString().split("T")[0];
           const ket = cleanedCols[ketIdx] || "";
 
-          const matchesDesa = userRole !== "kasir" || !kasirDesa || !customer || (customer.alamat && customer.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+          const matchesDesa = userRole !== "kasir" || !kasirDesa || !customer || (customer.wilayahDesa ? customer.wilayahDesa.toLowerCase() === kasirDesa.toLowerCase() : !!(customer.alamat && customer.alamat.toLowerCase().includes(kasirDesa.toLowerCase())));
 
           results.push({
             idPelanggan: idPel,
@@ -480,7 +480,10 @@ export default function TransaksiView({
     if (!selectedCustomerId) {
       tempErrors.idPelanggan = "Pilih pelanggan terlebih dahulu";
     } else if (userRole === "kasir" && kasirDesa) {
-      if (!selectedCustomerInfo || !selectedCustomerInfo.alamat || !selectedCustomerInfo.alamat.toLowerCase().includes(kasirDesa.toLowerCase())) {
+      const matchesDesa = selectedCustomerInfo?.wilayahDesa 
+        ? selectedCustomerInfo.wilayahDesa.toLowerCase() === kasirDesa.toLowerCase()
+        : !!(selectedCustomerInfo?.alamat && selectedCustomerInfo.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+      if (!selectedCustomerInfo || !matchesDesa) {
         tempErrors.idPelanggan = `Anda hanya diizinkan memproses tagihan pelanggan di wilayah tugas Anda (${kasirDesa})!`;
       }
     }
@@ -595,9 +598,10 @@ export default function TransaksiView({
 
     // Filter by Cashier's assigned village/desa
     if (userRole === "kasir" && kasirDesa) {
-      unpaidPelangganList = unpaidPelangganList.filter(p => 
-        p.alamat && p.alamat.toLowerCase().includes(kasirDesa.toLowerCase())
-      );
+      unpaidPelangganList = unpaidPelangganList.filter(p => {
+        if (p.wilayahDesa) return p.wilayahDesa.toLowerCase() === kasirDesa.toLowerCase();
+        return !!(p.alamat && p.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+      });
     }
 
     if (!customerSearchText.trim()) return unpaidPelangganList;
@@ -616,9 +620,11 @@ export default function TransaksiView({
 
     // Filter by Cashier's assigned village/desa
     if (userRole === "kasir" && kasirDesa) {
-      list = list.filter(item => 
-        item.pelanggan.alamat && item.pelanggan.alamat.toLowerCase().includes(kasirDesa.toLowerCase())
-      );
+      list = list.filter(item => {
+        const p = item.pelanggan;
+        if (p.wilayahDesa) return p.wilayahDesa.toLowerCase() === kasirDesa.toLowerCase();
+        return !!(p.alamat && p.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+      });
     }
 
     if (!arrearsSearch.trim()) return list;
@@ -663,7 +669,15 @@ export default function TransaksiView({
       let matchesWilayah = true;
       if (userRole === "kasir" && kasirDesa) {
         const customer = pelangganList.find(p => p.id === tx.idPelanggan);
-        matchesWilayah = !!(customer?.alamat && customer.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+        if (customer) {
+          if (customer.wilayahDesa) {
+            matchesWilayah = customer.wilayahDesa.toLowerCase() === kasirDesa.toLowerCase();
+          } else {
+            matchesWilayah = !!(customer.alamat && customer.alamat.toLowerCase().includes(kasirDesa.toLowerCase()));
+          }
+        } else {
+          matchesWilayah = false;
+        }
       }
 
       return matchesSearch && matchesLayanan && matchesWilayah;

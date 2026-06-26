@@ -68,6 +68,10 @@ export default function MasterPetugas({
     set.add("Tangerang");
 
     pelangganList.forEach(p => {
+      if (p.wilayahDesa) {
+        set.add(p.wilayahDesa.trim());
+        return;
+      }
       if (!p.alamat) return;
       
       // Split by common separators (comma, semicolon)

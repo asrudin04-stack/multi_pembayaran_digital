@@ -177,14 +177,15 @@ export default function Dashboard({
   const addressStats = useMemo(() => {
     const counts: Record<string, { total: number; PLN: number; PDAM: number; WIFI: number }> = {};
     pelangganList.forEach(p => {
-      const addr = (p.alamat || "Tanpa Alamat").trim();
-      if (!counts[addr]) {
-        counts[addr] = { total: 0, PLN: 0, PDAM: 0, WIFI: 0 };
+      const desa = (p.wilayahDesa || p.alamat?.split(/[,;]/).pop()?.trim() || "Tanpa Wilayah").trim();
+      const formattedDesa = desa.replace(/\b\w/g, c => c.toUpperCase());
+      if (!counts[formattedDesa]) {
+        counts[formattedDesa] = { total: 0, PLN: 0, PDAM: 0, WIFI: 0 };
       }
-      counts[addr].total += 1;
-      if (p.layanan === "PLN") counts[addr].PLN += 1;
-      else if (p.layanan === "PDAM") counts[addr].PDAM += 1;
-      else if (p.layanan === "WIFI") counts[addr].WIFI += 1;
+      counts[formattedDesa].total += 1;
+      if (p.layanan === "PLN") counts[formattedDesa].PLN += 1;
+      else if (p.layanan === "PDAM") counts[formattedDesa].PDAM += 1;
+      else if (p.layanan === "WIFI") counts[formattedDesa].WIFI += 1;
     });
 
     return Object.entries(counts)

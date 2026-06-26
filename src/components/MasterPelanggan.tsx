@@ -31,12 +31,12 @@ interface MasterPelangganProps {
   pelangganList: Pelanggan[];
   biayaList: BiayaTarif[];
   tanggalList: TanggalPembayaran[];
-  onAddPelanggan: (pelanggan: Pelanggan | Pelanggan[]) => void;
-  onUpdatePelanggan: (pelanggan: Pelanggan) => void;
-  onDeletePelanggan: (id: string | string[]) => void;
-  onAddBiaya: (biaya: BiayaTarif) => void;
-  onUpdateBiaya: (biaya: BiayaTarif) => void;
-  onDeleteBiaya: (id: string) => void;
+  onAddPelanggan: (pelanggan: Pelanggan | Pelanggan[]) => Promise<any>;
+  onUpdatePelanggan: (pelanggan: Pelanggan) => Promise<any>;
+  onDeletePelanggan: (id: string | string[]) => Promise<any>;
+  onAddBiaya: (biaya: BiayaTarif) => Promise<any> | void;
+  onUpdateBiaya: (biaya: BiayaTarif) => Promise<any> | void;
+  onDeleteBiaya: (id: string) => Promise<any> | void;
 }
 
 export default function MasterPelanggan({
@@ -109,9 +109,11 @@ export default function MasterPelanggan({
   const [idTarif, setIdTarif] = useState("");
   const [idTanggal, setIdTanggal] = useState("");
   const [nominalTarif, setNominalTarif] = useState<number | "">("");
+  const [wilayahDesa, setWilayahDesa] = useState("");
 
   // Error validations
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   // Sub-tab state for merged Pelanggan and Biaya menu
   const [subTab, setSubTab] = useState<'pelanggan' | 'biaya'>('pelanggan');
@@ -227,6 +229,9 @@ export default function MasterPelanggan({
           const l = String(item.layanan || "PLN").toUpperCase().trim() as 'PLN' | 'PDAM' | 'WIFI';
           const rawNominal = item.nominalTarif ?? item.tarifBulanan ?? item.tarif_bulanan ?? item.nominal_tarif ?? item.tarif ?? item.biaya;
           const nominalTarifVal = rawNominal !== undefined && rawNominal !== null && rawNominal !== "" ? Number(rawNominal) : undefined;
+          const rawDesa = item.wilayahDesa ?? item.wilayah_desa ?? item.desa ?? item.wilayah ?? item.region ?? item.village;
+          const parsedDesa = (rawDesa || (item.alamat ? (String(item.alamat).split(/[,;]/).pop() || "Desa Makmur") : "Desa Makmur")).trim();
+          const formattedDesa = parsedDesa.replace(/\b\w/g, c => c.toUpperCase());
           return {
             nama: String(item.nama || "").trim(),
             noTelp: String(item.noTelp || item.no_telp || item.telepon || "").trim(),
@@ -235,7 +240,8 @@ export default function MasterPelanggan({
             noMeter: String(item.noMeter || item.no_meter || item.id_meter || item.meter || "").trim(),
             idTarif: String(item.idTarif || item.id_tarif || item.paket || "").trim() || undefined,
             idTanggal: String(item.idTanggal || item.id_tanggal || item.tanggal || item.jadwal || item.tempo || "").trim() || undefined,
-            nominalTarif: (nominalTarifVal !== undefined && !isNaN(nominalTarifVal)) ? nominalTarifVal : undefined
+            nominalTarif: (nominalTarifVal !== undefined && !isNaN(nominalTarifVal)) ? nominalTarifVal : undefined,
+            wilayahDesa: formattedDesa
           };
         });
         const validList = sanitized.filter(x => x.nama !== "");
@@ -336,12 +342,16 @@ export default function MasterPelanggan({
           const meterIdx = getIndexByHeader(["meter", "id_meter", "account", "rekening", "no_mtr", "nometer"], 4);
           const tarifIdx = getIndexByHeader(["tarif", "nominal", "biaya", "harga", "rate", "tarifbulanan", "tarif_bulanan"], 5);
           const tanggalIdx = getIndexByHeader(["tanggal", "tempo", "due", "idtanggal", "id_tanggal"], 6);
+          const desaIdx = getIndexByHeader(["desa", "wilayah", "wilayahdesa", "wilayah_desa", "village", "region"], 7);
 
           namaVal = cleanedCols[namaIdx] || "";
           noTelpVal = cleanedCols[telpIdx] || (cleanedCols[1] !== undefined ? cleanedCols[1] : "");
           alamatVal = cleanedCols[alamatIdx] || (cleanedCols[2] !== undefined ? cleanedCols[2] : "");
           noMeterVal = cleanedCols[meterIdx] || (cleanedCols[4] !== undefined ? cleanedCols[4] : "");
           idTanggalVal = cleanedCols[tanggalIdx] || (cleanedCols[6] !== undefined ? cleanedCols[6] : "");
+          const desaVal = cleanedCols[desaIdx] || "";
+          const parsedDesa = (desaVal || (alamatVal ? (alamatVal.split(/[,;]/).pop() || "Desa Makmur") : "Desa Makmur")).trim();
+          const formattedDesa = parsedDesa.replace(/\b\w/g, c => c.toUpperCase());
 
           const rawTarifStr = (cleanedCols[tarifIdx] || (cleanedCols[5] !== undefined ? cleanedCols[5] : "")).trim();
           if (rawTarifStr) {
@@ -386,6 +396,7 @@ export default function MasterPelanggan({
                       idTarif: idTarifVal || undefined,
                       idTanggal: idTanggalVal || undefined,
                       nominalTarif: nominalTarifVal,
+                      wilayahDesa: formattedDesa
                     });
                     addedAny = true;
                   }
@@ -411,6 +422,7 @@ export default function MasterPelanggan({
               idTarif: idTarifVal || undefined,
               idTanggal: idTanggalVal || undefined,
               nominalTarif: nominalTarifVal,
+              wilayahDesa: formattedDesa
             });
           }
         });
@@ -518,7 +530,7 @@ export default function MasterPelanggan({
     }
     
     let csvContent = "\uFEFF"; // BOM for UTF-8 compatibility with MS Excel
-    csvContent += "ID Pelanggan,Nama Pelanggan,No Telepon,Alamat,Layanan,No ID Meteran/Akun,Tarif Bulanan,ID Tanggal Jatuh Tempo\r\n";
+    csvContent += "ID Pelanggan,Nama Pelanggan,No Telepon,Alamat,Layanan,No ID Meteran/Akun,Tarif Bulanan,ID Tanggal Jatuh Tempo,Wilayah Desa\r\n";
     
     dataToExport.forEach((p) => {
       const id = p.id;
@@ -529,8 +541,9 @@ export default function MasterPelanggan({
       const noMeter = `"${p.noMeter.replace(/"/g, '""')}"`;
       const tarif = p.nominalTarif !== undefined ? p.nominalTarif : "";
       const idTanggal = p.idTanggal || "";
+      const wilayahDesa = `"${(p.wilayahDesa || "").replace(/"/g, '""')}"`;
       
-      csvContent += `${id},${nama},${noTelp},${alamat},${layanan},${noMeter},${tarif},${idTanggal}\r\n`;
+      csvContent += `${id},${nama},${noTelp},${alamat},${layanan},${noMeter},${tarif},${idTanggal},${wilayahDesa}\r\n`;
     });
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -544,8 +557,8 @@ export default function MasterPelanggan({
   };
 
   const downloadTemplateCustomerCSV = () => {
-    const headers = "nama,noTelp,alamat,layanan,noMeter,tarifBulanan,idTanggal\n";
-    const sample = "Joko Susilo,081299998888,Jl. Anggrek No. 10,PLN,53221199028,150000,TGL-001\nSusi Susanti,085522221111,Perum Permai Blok D-2,WIFI,WIFI-IND-9092,275000,TGL-003\nPak Amat,089911110000,Desa Makmur RT 01,PDAM,PAM-887711,95000,TGL-002\n";
+    const headers = "nama,noTelp,alamat,layanan,noMeter,tarifBulanan,idTanggal,wilayahDesa\n";
+    const sample = "Joko Susilo,081299998888,Jl. Anggrek No. 10,PLN,53221199028,150000,TGL-001,Bogor\nSusi Susanti,085522221111,Perum Permai Blok D-2,WIFI,WIFI-IND-9092,275000,TGL-003,Tangerang\nPak Amat,089911110000,Desa Makmur RT 01,PDAM,PAM-887711,95000,TGL-002,Desa Makmur\n";
     const blob = new Blob([headers + sample], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -587,6 +600,7 @@ export default function MasterPelanggan({
     setIdTarif("");
     setIdTanggal("");
     setNominalTarif("");
+    setWilayahDesa("");
     setErrors({});
     setIsFormOpen(true);
   };
@@ -602,6 +616,7 @@ export default function MasterPelanggan({
     setNominalTarif(b.biayaPerBulan);
     const matchingDates = tanggalList.filter(t => t.layanan === b.layanan);
     setIdTanggal(matchingDates.length > 0 ? matchingDates[0].id : "");
+    setWilayahDesa("");
     setErrors({});
     setIsFormOpen(true);
   };
@@ -616,6 +631,7 @@ export default function MasterPelanggan({
     setIdTarif(p.idTarif || "");
     setNominalTarif(p.nominalTarif !== undefined ? p.nominalTarif : "");
     setIdTanggal(p.idTanggal || "");
+    setWilayahDesa(p.wilayahDesa || "");
     setErrors({});
     setIsFormOpen(true);
   };
@@ -630,6 +646,7 @@ export default function MasterPelanggan({
     if (!nama.trim()) tempErrors.nama = "Nama pelanggan wajib diisi";
     if (!noTelp.trim()) tempErrors.noTelp = "Nomor telepon wajib diisi";
     if (!alamat.trim()) tempErrors.alamat = "Alamat wajib diisi";
+    if (!wilayahDesa.trim()) tempErrors.wilayahDesa = "Wilayah / Desa wajib diisi";
     if (!noMeter.trim()) {
       tempErrors.noMeter = layanan === "PLN" ? "Nomor meter listrik wajib diisi" :
                            layanan === "PDAM" ? "Nomor rekening air wajib diisi" :
@@ -642,40 +659,51 @@ export default function MasterPelanggan({
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (editingPelanggan) {
-      // Update action
-      onUpdatePelanggan({
-        ...editingPelanggan,
-        nama: nama.trim(),
-        noTelp: noTelp.trim(),
-        alamat: alamat.trim(),
-        layanan,
-        noMeter: noMeter.trim(),
-        idTarif: idTarif || undefined,
-        idTanggal: idTanggal || undefined,
-        nominalTarif: nominalTarif !== "" ? Number(nominalTarif) : undefined
-      });
-    } else {
-      // Create action
-      const newId = generateNewId();
-      onAddPelanggan({
-        id: newId,
-        nama: nama.trim(),
-        noTelp: noTelp.trim(),
-        alamat: alamat.trim(),
-        layanan,
-        noMeter: noMeter.trim(),
-        idTarif: idTarif || undefined,
-        idTanggal: idTanggal || undefined,
-        nominalTarif: nominalTarif !== "" ? Number(nominalTarif) : undefined
-      });
-    }
+    setIsSaving(true);
+    setErrors({});
 
-    setIsFormOpen(false);
+    try {
+      if (editingPelanggan) {
+        // Update action
+        await onUpdatePelanggan({
+          ...editingPelanggan,
+          nama: nama.trim(),
+          noTelp: noTelp.trim(),
+          alamat: alamat.trim(),
+          layanan,
+          noMeter: noMeter.trim(),
+          idTarif: idTarif || undefined,
+          idTanggal: idTanggal || undefined,
+          nominalTarif: nominalTarif !== "" ? Number(nominalTarif) : undefined,
+          wilayahDesa: wilayahDesa.trim()
+        });
+      } else {
+        // Create action
+        const newId = generateNewId();
+        await onAddPelanggan({
+          id: newId,
+          nama: nama.trim(),
+          noTelp: noTelp.trim(),
+          alamat: alamat.trim(),
+          layanan,
+          noMeter: noMeter.trim(),
+          idTarif: idTarif || undefined,
+          idTanggal: idTanggal || undefined,
+          nominalTarif: nominalTarif !== "" ? Number(nominalTarif) : undefined,
+          wilayahDesa: wilayahDesa.trim()
+        });
+      }
+      setIsFormOpen(false);
+    } catch (err: any) {
+      console.error("Gagal menyimpan data pelanggan:", err);
+      setErrors({ global: "Gagal menyimpan data ke database cloud. Silakan periksa koneksi Anda." });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Filter and search computation
@@ -691,6 +719,30 @@ export default function MasterPelanggan({
       return matchSearch && matchLayanan;
     });
   }, [pelangganList, searchTerm, filterLayanan]);
+
+  const uniqueDesaList = useMemo(() => {
+    const set = new Set<string>();
+    set.add("Desa Makmur");
+    set.add("Bogor");
+    set.add("Depok");
+    set.add("Jakarta");
+    set.add("Bekasi");
+    set.add("Tangerang");
+
+    pelangganList.forEach(p => {
+      if (p.wilayahDesa) {
+        set.add(p.wilayahDesa.trim());
+      } else if (p.alamat) {
+        const parts = p.alamat.split(/[,;]/);
+        const lastPart = parts[parts.length - 1]?.trim();
+        if (lastPart && lastPart.length > 2 && lastPart.length < 35) {
+          set.add(lastPart.replace(/\b\w/g, c => c.toUpperCase()));
+        }
+      }
+    });
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pelangganList]);
 
   return (
     <div className="space-y-6">
@@ -858,6 +910,41 @@ export default function MasterPelanggan({
                 {errors.alamat && <p className="text-[10px] text-rose-500 mt-1">{errors.alamat}</p>}
               </div>
 
+              {/* Wilayah / Desa Input */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono uppercase text-slate-500 font-semibold">Wilayah / Desa</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={uniqueDesaList.includes(wilayahDesa) ? wilayahDesa : (wilayahDesa ? "custom" : "")}
+                    onChange={(e) => {
+                      if (e.target.value === "custom") {
+                        setWilayahDesa("");
+                      } else {
+                        setWilayahDesa(e.target.value);
+                      }
+                    }}
+                    className="w-full text-xs p-2 border border-slate-250 rounded-lg focus:outline-hidden focus:border-indigo-650 text-slate-700 bg-white font-medium"
+                  >
+                    <option value="">-- Pilih Wilayah / Desa --</option>
+                    {uniqueDesaList.map((desa) => (
+                      <option key={desa} value={desa}>{desa}</option>
+                    ))}
+                    <option value="custom">✍️ Tulis Desa Baru...</option>
+                  </select>
+
+                  {(!uniqueDesaList.includes(wilayahDesa) || !wilayahDesa) && (
+                    <input 
+                      type="text"
+                      placeholder="Masukkan nama desa baru..."
+                      value={wilayahDesa}
+                      onChange={(e) => setWilayahDesa(e.target.value)}
+                      className="w-full text-xs px-3 py-2 border border-slate-250 rounded-lg focus:outline-hidden focus:border-indigo-650 text-slate-700 bg-white animate-fadeIn"
+                    />
+                  )}
+                </div>
+                {errors.wilayahDesa && <p className="text-[10px] text-rose-500 mt-1">{errors.wilayahDesa}</p>}
+              </div>
+
               {/* Layanan & No Meter */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
@@ -938,19 +1025,36 @@ export default function MasterPelanggan({
               </div>
 
               {/* Form Buttons */}
+              {errors.global && (
+                <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-xs rounded-lg font-medium animate-fadeIn">
+                  {errors.global}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button 
                   type="button"
                   onClick={handleCloseForm}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold cursor-pointer"
+                  disabled={isSaving}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-600/10"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-600/10 disabled:cursor-not-allowed"
                 >
-                  <Check size={14} /> Simpan Data
+                  {isSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} /> Simpan Data
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -989,7 +1093,7 @@ export default function MasterPelanggan({
                   Sistem mendukung file format <strong className="text-slate-800">CSV (.csv)</strong> atau <strong className="text-slate-800">JSON (.json)</strong>. Kolom pertama dokumen wajib berupa baris header berikut:
                 </p>
                 <div className="bg-slate-900 text-indigo-300 p-2 rounded-md font-mono text-[10px] select-all">
-                  nama,noTelp,alamat,layanan,noMeter
+                  nama,noTelp,alamat,layanan,noMeter,wilayahDesa
                 </div>
                 <div className="text-[11px] space-y-1">
                   <p>• <strong className="text-slate-700">layanan</strong> diisi dengan salah satu: <span className="text-indigo-700 font-semibold font-mono">PLN</span>, <span className="text-indigo-700 font-semibold font-mono">PDAM</span>, atau <span className="text-indigo-700 font-semibold font-mono">WIFI</span></p>
@@ -1039,7 +1143,7 @@ export default function MasterPelanggan({
                 <label className="text-[10px] font-mono uppercase text-slate-450 font-semibold block">ATAU TEMPELKAN TEKS CSV DI SINI</label>
                 <textarea 
                   rows={2}
-                  placeholder="nama,noTelp,alamat,layanan,noMeter&#13;&#10;Achmad,081223,Demak,PLN,11992200&#13;&#10;Zubaidah,087723,Kudus,PDAM,PAM998822"
+                  placeholder="nama,noTelp,alamat,layanan,noMeter,wilayahDesa&#13;&#10;Achmad,081223,Demak,PLN,11992200,Demak&#13;&#10;Zubaidah,087723,Kudus,PDAM,PAM998822,Kudus"
                   value={rawText}
                   onChange={(e) => {
                     setRawText(e.target.value);
