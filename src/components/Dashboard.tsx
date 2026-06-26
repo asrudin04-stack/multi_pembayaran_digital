@@ -381,7 +381,7 @@ export default function Dashboard({
       return { 
         text: "Selamat Pagi", 
         icon: "🌅", 
-        quote: "Awali hari dengan senyum hangat & energi positif melayani warga! 🌟",
+        quote: "Awali hari dengan senyum hangat & energi positif melayani pelanggan! 🌟",
         gradient: "from-amber-400 via-orange-500 to-rose-600"
       };
     } else if (hour >= 11 && hour < 15) {
@@ -435,7 +435,7 @@ export default function Dashboard({
             <h1 className="text-2xl md:text-3.5xl font-sans font-black tracking-tight leading-tight text-white drop-shadow-sm">
               Kelola Pembayaran <br/>
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-200 via-white to-cyan-100">
-                Layanan Warga Lebih Cepat! 🚀
+                Layanan Pelanggan Lebih Cepat! 🚀
               </span>
             </h1>
             
@@ -508,7 +508,7 @@ export default function Dashboard({
           <div className="space-y-1.5 text-left">
             <span className="text-[10px] font-mono text-slate-400 font-black uppercase tracking-wider block">Pelanggan Aktif</span>
             <h3 className="text-2xl font-black text-slate-850 tracking-tight">
-              {pelangganList.length} <span className="text-xs font-bold text-slate-450 font-mono">Warga</span>
+              {pelangganList.length} <span className="text-xs font-bold text-slate-450 font-mono">Pelanggan</span>
             </h3>
             <span className="inline-flex items-center gap-1 text-[10.5px] font-extrabold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100/50">
               <Activity size={11} className="text-indigo-500" /> Terpantau 24/7 🎯
