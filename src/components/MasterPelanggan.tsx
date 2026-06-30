@@ -386,6 +386,64 @@ export default function MasterPelanggan({
                     activeMeter = `${srv}-MTR-${Math.floor(1000 + Math.random() * 9000)}`;
                   }
 
+                  // Resolve idTarif and idTanggal based on this specific service (srv)
+                  let resolvedIdTanggal = "";
+                  if (idTanggalVal) {
+                    const exactMatch = tanggalList.find(t => t.id === idTanggalVal);
+                    if (exactMatch) {
+                      resolvedIdTanggal = exactMatch.id;
+                    } else {
+                      const numVal = parseInt(idTanggalVal.replace(/\D/g, ""), 10);
+                      if (!isNaN(numVal)) {
+                        const numMatch = tanggalList.find(t => t.layanan === srv && t.tanggalJatuhTempo === numVal);
+                        if (numMatch) {
+                          resolvedIdTanggal = numMatch.id;
+                        }
+                      }
+                      if (!resolvedIdTanggal) {
+                        const nameMatch = tanggalList.find(t => 
+                          t.layanan === srv && (
+                            t.namaJadwal.toLowerCase().includes(idTanggalVal.toLowerCase()) ||
+                            idTanggalVal.toLowerCase().includes(t.namaJadwal.toLowerCase())
+                          )
+                        );
+                        if (nameMatch) {
+                          resolvedIdTanggal = nameMatch.id;
+                        }
+                      }
+                    }
+                  }
+                  if (!resolvedIdTanggal) {
+                    const defaultDate = tanggalList.find(t => t.layanan === srv);
+                    if (defaultDate) {
+                      resolvedIdTanggal = defaultDate.id;
+                    }
+                  }
+
+                  let resolvedIdTarif = "";
+                  if (idTarifVal) {
+                    const exactMatch = biayaList.find(b => b.id === idTarifVal);
+                    if (exactMatch) {
+                      resolvedIdTarif = exactMatch.id;
+                    } else {
+                      const nameMatch = biayaList.find(b => 
+                        b.layanan === srv && (
+                          b.namaPaket.toLowerCase().includes(idTarifVal.toLowerCase()) ||
+                          idTarifVal.toLowerCase().includes(b.namaPaket.toLowerCase())
+                        )
+                      );
+                      if (nameMatch) {
+                        resolvedIdTarif = nameMatch.id;
+                      }
+                    }
+                  }
+                  if (!resolvedIdTarif) {
+                    const defaultTarif = biayaList.find(b => b.layanan === srv);
+                    if (defaultTarif) {
+                      resolvedIdTarif = defaultTarif.id;
+                    }
+                  }
+
                   if (namaVal) {
                     results.push({
                       nama: namaVal,
@@ -393,8 +451,8 @@ export default function MasterPelanggan({
                       alamat: alamatVal,
                       layanan: srv,
                       noMeter: activeMeter,
-                      idTarif: idTarifVal || undefined,
-                      idTanggal: idTanggalVal || undefined,
+                      idTarif: resolvedIdTarif || undefined,
+                      idTanggal: resolvedIdTanggal || undefined,
                       nominalTarif: nominalTarifVal,
                       wilayahDesa: formattedDesa
                     });
@@ -413,14 +471,72 @@ export default function MasterPelanggan({
               ? (rawLayanan as 'PLN' | 'PDAM' | 'WIFI') 
               : 'PLN';
 
+            // Resolve idTarif and idTanggal based on finalLayanan
+            let resolvedIdTanggal = "";
+            if (idTanggalVal) {
+              const exactMatch = tanggalList.find(t => t.id === idTanggalVal);
+              if (exactMatch) {
+                resolvedIdTanggal = exactMatch.id;
+              } else {
+                const numVal = parseInt(idTanggalVal.replace(/\D/g, ""), 10);
+                if (!isNaN(numVal)) {
+                  const numMatch = tanggalList.find(t => t.layanan === finalLayanan && t.tanggalJatuhTempo === numVal);
+                  if (numMatch) {
+                    resolvedIdTanggal = numMatch.id;
+                  }
+                }
+                if (!resolvedIdTanggal) {
+                  const nameMatch = tanggalList.find(t => 
+                    t.layanan === finalLayanan && (
+                      t.namaJadwal.toLowerCase().includes(idTanggalVal.toLowerCase()) ||
+                      idTanggalVal.toLowerCase().includes(t.namaJadwal.toLowerCase())
+                    )
+                  );
+                  if (nameMatch) {
+                    resolvedIdTanggal = nameMatch.id;
+                  }
+                }
+              }
+            }
+            if (!resolvedIdTanggal) {
+              const defaultDate = tanggalList.find(t => t.layanan === finalLayanan);
+              if (defaultDate) {
+                resolvedIdTanggal = defaultDate.id;
+              }
+            }
+
+            let resolvedIdTarif = "";
+            if (idTarifVal) {
+              const exactMatch = biayaList.find(b => b.id === idTarifVal);
+              if (exactMatch) {
+                resolvedIdTarif = exactMatch.id;
+              } else {
+                const nameMatch = biayaList.find(b => 
+                  b.layanan === finalLayanan && (
+                    b.namaPaket.toLowerCase().includes(idTarifVal.toLowerCase()) ||
+                    idTarifVal.toLowerCase().includes(b.namaPaket.toLowerCase())
+                  )
+                );
+                if (nameMatch) {
+                  resolvedIdTarif = nameMatch.id;
+                }
+              }
+            }
+            if (!resolvedIdTarif) {
+              const defaultTarif = biayaList.find(b => b.layanan === finalLayanan);
+              if (defaultTarif) {
+                resolvedIdTarif = defaultTarif.id;
+              }
+            }
+
             results.push({
               nama: namaVal,
               noTelp: noTelpVal,
               alamat: alamatVal,
               layanan: finalLayanan,
               noMeter: noMeterVal || `${finalLayanan}-MTR-${Math.floor(1000 + Math.random() * 9000)}`,
-              idTarif: idTarifVal || undefined,
-              idTanggal: idTanggalVal || undefined,
+              idTarif: resolvedIdTarif || undefined,
+              idTanggal: resolvedIdTanggal || undefined,
               nominalTarif: nominalTarifVal,
               wilayahDesa: formattedDesa
             });

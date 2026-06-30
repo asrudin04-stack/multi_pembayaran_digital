@@ -406,7 +406,7 @@ export default function TransaksiView({
     }
   };
 
-  const processKolektifImportExecute = () => {
+  const processKolektifImportExecute = async () => {
     const validData = parsedDataKolektif.filter(x => x.isValid);
     if (validData.length === 0) {
       setImportStatusKolektif({ type: "error", message: "Tidak ada baris pembayaran yang valid untuk diproses." });
@@ -434,19 +434,32 @@ export default function TransaksiView({
       });
     });
 
-    onAddTransaksi(newlyCreatedTransactions);
-
     setImportStatusKolektif({
-      type: "success",
-      message: `Berhasil mencatat ${validData.length} transaksi pembayaran lunas kolektif!`
+      type: "idle",
+      message: "Sedang mengunggah transaksi pembayaran ke database awan..."
     });
-    setParsedDataKolektif([]);
-    setRawTextKolektif("");
 
-    setTimeout(() => {
-      setActiveSubTab("riwayat");
-      setImportStatusKolektif({ type: "idle", message: "" });
-    }, 1800);
+    try {
+      await onAddTransaksi(newlyCreatedTransactions);
+
+      setImportStatusKolektif({
+        type: "success",
+        message: `Berhasil mencatat ${validData.length} transaksi pembayaran lunas kolektif!`
+      });
+      setParsedDataKolektif([]);
+      setRawTextKolektif("");
+
+      setTimeout(() => {
+        setActiveSubTab("riwayat");
+        setImportStatusKolektif({ type: "idle", message: "" });
+      }, 1800);
+    } catch (err: any) {
+      console.error("Gagal mengimpor transaksi kolektif:", err);
+      setImportStatusKolektif({
+        type: "error",
+        message: `Gagal menyimpan data ke database cloud: ${err.message || err}. Silakan periksa koneksi Anda.`
+      });
+    }
   };
 
   const downloadTemplateKolektifCSV = () => {
